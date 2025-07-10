@@ -28,6 +28,8 @@
         /// </summary>
         private void InitializeComponent()
         {
+            components = new System.ComponentModel.Container();
+            DataGridViewCellStyle dataGridViewCellStyle1 = new DataGridViewCellStyle();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(frmTranslator));
             rtxtTextoCopiado = new RichTextBox();
             cmbTipoGlobo = new ComboBox();
@@ -51,13 +53,22 @@
             label10 = new Label();
             label11 = new Label();
             label12 = new Label();
+            dgvPreview = new DataGridView();
+            cdgvVineta = new DataGridViewTextBoxColumn();
+            cdgvTexto = new DataGridViewTextBoxColumn();
+            cdgvEliminar = new DataGridViewImageColumn();
+            ofdCargaArchivo = new OpenFileDialog();
+            btnCargarArchivo = new Button();
+            lblArchivoEditando = new Label();
+            tipBtnDirectorio = new ToolTip(components);
+            ((System.ComponentModel.ISupportInitialize)dgvPreview).BeginInit();
             SuspendLayout();
             // 
             // rtxtTextoCopiado
             // 
             rtxtTextoCopiado.Location = new Point(29, 254);
             rtxtTextoCopiado.Name = "rtxtTextoCopiado";
-            rtxtTextoCopiado.Size = new Size(351, 277);
+            rtxtTextoCopiado.Size = new Size(351, 159);
             rtxtTextoCopiado.TabIndex = 0;
             rtxtTextoCopiado.Text = "";
             rtxtTextoCopiado.TextChanged += rtxtTextoCopiado_TextChanged;
@@ -68,7 +79,7 @@
             // 
             cmbTipoGlobo.DropDownStyle = ComboBoxStyle.DropDownList;
             cmbTipoGlobo.FormattingEnabled = true;
-            cmbTipoGlobo.Items.AddRange(new object[] { "Dialogo", "Gritos", "Pensamiento", "Narración/Rectángulo", "Fuera de globo", "Nota de Traductor" });
+            cmbTipoGlobo.Items.AddRange(new object[] { "- Dialogo", "> Gritos", "_ Pensamiento", "[ Narración/Rectángulo", "] Fuera de globo", "N/T: Nota de Traductor" });
             cmbTipoGlobo.Location = new Point(29, 225);
             cmbTipoGlobo.Name = "cmbTipoGlobo";
             cmbTipoGlobo.Size = new Size(231, 23);
@@ -78,7 +89,7 @@
             // 
             btnAddTexto.Location = new Point(405, 254);
             btnAddTexto.Name = "btnAddTexto";
-            btnAddTexto.Size = new Size(175, 188);
+            btnAddTexto.Size = new Size(175, 65);
             btnAddTexto.TabIndex = 2;
             btnAddTexto.Text = "Añadir Linea";
             btnAddTexto.UseVisualStyleBackColor = true;
@@ -101,6 +112,7 @@
             btnDirectorio.Text = "...";
             btnDirectorio.UseVisualStyleBackColor = true;
             btnDirectorio.Click += btnDirectorio_Click;
+            btnDirectorio.MouseHover += btnDirectorio_MouseHover;
             // 
             // chkPortapapeles
             // 
@@ -125,9 +137,9 @@
             // 
             // btnSave
             // 
-            btnSave.Location = new Point(405, 448);
+            btnSave.Location = new Point(405, 341);
             btnSave.Name = "btnSave";
-            btnSave.Size = new Size(175, 85);
+            btnSave.Size = new Size(175, 72);
             btnSave.TabIndex = 9;
             btnSave.Text = "Terminar capítulo";
             btnSave.UseVisualStyleBackColor = true;
@@ -262,13 +274,77 @@
             label12.TabIndex = 22;
             label12.Text = "F6 = Nota de Traductor";
             // 
+            // dgvPreview
+            // 
+            dgvPreview.AllowUserToAddRows = false;
+            dgvPreview.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            dgvPreview.Columns.AddRange(new DataGridViewColumn[] { cdgvVineta, cdgvTexto, cdgvEliminar });
+            dgvPreview.Location = new Point(29, 446);
+            dgvPreview.MultiSelect = false;
+            dgvPreview.Name = "dgvPreview";
+            dgvPreview.Size = new Size(348, 185);
+            dgvPreview.TabIndex = 24;
+            dgvPreview.CellContentClick += dgvPreview_CellContentClick;
+            dgvPreview.CellLeave += dgvPreview_CellLeave;
+            dgvPreview.CellMouseEnter += dgvPreview_CellMouseEnter;
+            dgvPreview.CellMouseLeave += dgvPreview_CellMouseLeave;
+            // 
+            // cdgvVineta
+            // 
+            dataGridViewCellStyle1.WrapMode = DataGridViewTriState.True;
+            cdgvVineta.DefaultCellStyle = dataGridViewCellStyle1;
+            cdgvVineta.HeaderText = "Viñeta";
+            cdgvVineta.Name = "cdgvVineta";
+            // 
+            // cdgvTexto
+            // 
+            cdgvTexto.HeaderText = "Texto";
+            cdgvTexto.Name = "cdgvTexto";
+            // 
+            // cdgvEliminar
+            // 
+            cdgvEliminar.AutoSizeMode = DataGridViewAutoSizeColumnMode.ColumnHeader;
+            cdgvEliminar.HeaderText = "";
+            cdgvEliminar.Image = Properties.Resources.icons8_eliminar_color_310;
+            cdgvEliminar.ImageLayout = DataGridViewImageCellLayout.Stretch;
+            cdgvEliminar.MinimumWidth = 30;
+            cdgvEliminar.Name = "cdgvEliminar";
+            cdgvEliminar.ReadOnly = true;
+            cdgvEliminar.Resizable = DataGridViewTriState.False;
+            cdgvEliminar.ToolTipText = "Eliminar Fila";
+            cdgvEliminar.Width = 30;
+            // 
+            // btnCargarArchivo
+            // 
+            btnCargarArchivo.Location = new Point(405, 446);
+            btnCargarArchivo.Name = "btnCargarArchivo";
+            btnCargarArchivo.Size = new Size(175, 34);
+            btnCargarArchivo.TabIndex = 25;
+            btnCargarArchivo.Text = "Cargar Archivo";
+            btnCargarArchivo.UseVisualStyleBackColor = true;
+            btnCargarArchivo.Click += btnCargarArchivo_Click;
+            // 
+            // lblArchivoEditando
+            // 
+            lblArchivoEditando.AutoSize = true;
+            lblArchivoEditando.Font = new Font("Segoe UI", 12F);
+            lblArchivoEditando.Location = new Point(29, 422);
+            lblArchivoEditando.Name = "lblArchivoEditando";
+            lblArchivoEditando.Size = new Size(131, 21);
+            lblArchivoEditando.TabIndex = 26;
+            lblArchivoEditando.Text = "Archivo editando:";
+            lblArchivoEditando.Visible = false;
+            // 
             // frmTranslator
             // 
             AutoScaleDimensions = new SizeF(96F, 96F);
             AutoScaleMode = AutoScaleMode.Dpi;
             AutoSize = true;
             AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            ClientSize = new Size(661, 582);
+            ClientSize = new Size(661, 643);
+            Controls.Add(lblArchivoEditando);
+            Controls.Add(btnCargarArchivo);
+            Controls.Add(dgvPreview);
             Controls.Add(label12);
             Controls.Add(label11);
             Controls.Add(label10);
@@ -297,6 +373,7 @@
             Name = "frmTranslator";
             StartPosition = FormStartPosition.CenterScreen;
             Text = "Transcription Assistant";
+            ((System.ComponentModel.ISupportInitialize)dgvPreview).EndInit();
             ResumeLayout(false);
             PerformLayout();
         }
@@ -325,5 +402,13 @@
         private Label label10;
         private Label label11;
         private Label label12;
+        private DataGridView dgvPreview;
+        private OpenFileDialog ofdCargaArchivo;
+        private Button btnCargarArchivo;
+        private Label lblArchivoEditando;
+        private DataGridViewTextBoxColumn cdgvVineta;
+        private DataGridViewTextBoxColumn cdgvTexto;
+        private DataGridViewImageColumn cdgvEliminar;
+        private ToolTip tipBtnDirectorio;
     }
 }

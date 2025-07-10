@@ -1,3 +1,4 @@
+using System.Windows.Forms;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.Window;
 
 namespace TranscriptionAssistent
@@ -6,22 +7,21 @@ namespace TranscriptionAssistent
     {
         private string _tituloCapitulo = string.Empty;
 
-        FolderBrowserDialog directoryDialog;
+        private bool IsEdition = false;
         public frmTranslator()
         {
             InitializeComponent();
+            txtDirectorio.Text = Settings.Default.LatestFolderPath;
             this.AutoSize = true;
             this.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             cmbTipoGlobo.SelectedIndex = 0;
             cmbProyecto.SelectedIndex = 0;
-            directoryDialog = new FolderBrowserDialog();
         }
 
-        private void rtxtTextoCopiado_MouseHover(object sender, EventArgs e)
-        {
-            if (chkPortapapeles.Checked) CopiarTextoPortapapeles();
-        }
 
+        #region "Funciones para la aplicación"
+
+        //Función para validar que el directorio y el título del capítulo no estén vacíos.
         private bool ValidarTituloDirectorio()
         {
             if (txtDirectorio.Text == string.Empty || txtCapitulo.Text == string.Empty)
@@ -51,60 +51,142 @@ namespace TranscriptionAssistent
             }
         }
 
-        private void btnDirectorio_Click(object sender, EventArgs e)
+        //Función para agregar una línea al archivo de texto.
+        private void AgregarLinea()
         {
-            if (directoryDialog.ShowDialog() == DialogResult.OK)
+            if (!IsEdition)
             {
-                txtDirectorio.Text = directoryDialog.SelectedPath;
+                if (!ValidarTituloDirectorio() || rtxtTextoCopiado.Text == string.Empty) return;
+                _tituloCapitulo = cmbProyecto.Text + " Capítulo " + txtCapitulo.Text.Trim() + ".txt";
+                txtCapitulo.Enabled = false;
+            }
+
+
+            string textoTranscripcion = rtxtTextoCopiado.Text.Trim().Replace("\r\n", string.Empty).Replace("\n", string.Empty);
+            using (StreamWriter writer = new StreamWriter(txtDirectorio.Text + "\\" + _tituloCapitulo, true))
+            {
+                GuardarDataGrid();
+                writer.WriteLine($"{cmbTipoGlobo.Text.Substring(0, 1)}{textoTranscripcion}");
+                writer.Close();
+                CargarArchivo(txtDirectorio.Text + "\\" + _tituloCapitulo);
+            }
+
+            rtxtTextoCopiado.Clear();
+            cmbProyecto.Enabled = false;
+        }
+
+        //Función para cargar el archivo de texto en el DataGridView y entrar en el modo edición.
+        private void CargarArchivo(string path)
+        {
+            StreamReader reader = new StreamReader(path);
+            List<string> lineasArchivo = reader.ReadToEnd().Replace("\r", "").Split("\n").ToList();
+            lineasArchivo.RemoveAll(x => x == "");
+            dgvPreview.Rows.Clear();
+            foreach (string linea in lineasArchivo)
+            {
+                DataGridViewRow row = dgvPreview.Rows[dgvPreview.Rows.Add()];
+                row.Cells[0].Value = linea.Substring(0, 1).Trim();
+                row.Cells[1].Value = linea.Substring(1).Trim();
+            }
+            reader.Close();
+        }
+
+        //Función para sobreescribir o guardar el contenido del DataGridView en un archivo de texto.
+        private void GuardarDataGrid()
+        {
+            try
+            {
+                using (StreamWriter writer = new StreamWriter(_tituloCapitulo))
+                {
+                    foreach (DataGridViewRow row in dgvPreview.Rows)
+                    {
+                        writer.WriteLine($"{row.Cells[0].Value}{row.Cells[1].Value}");
+                    }
+                    writer.Close();
+                }
+            }
+            catch (Exception ex)
+            {
+                //
             }
         }
 
+        #endregion
+
+        #region "Eventos de los controles"
+        private void rtxtTextoCopiado_MouseHover(object sender, EventArgs e)
+        {
+            if (chkPortapapeles.Checked) CopiarTextoPortapapeles();
+        }
+
+        //Evento para el botón que permite seleccionar el directorio
+        private void btnDirectorio_Click(object sender, EventArgs e)
+        {
+            if (fbdDirectorio.ShowDialog() == DialogResult.OK)
+            {
+                GuardarDataGrid();
+                dgvPreview.Rows.Clear();
+                txtCapitulo.Enabled = true;
+                txtCapitulo.Clear();
+                cmbProyecto.Enabled = true;
+
+                txtDirectorio.Text = fbdDirectorio.SelectedPath;
+                Settings.Default.LatestFolderPath = fbdDirectorio.SelectedPath;
+                Settings.Default.Save();
+            }
+        }
+
+        //Evento para el botón que permite cargar un archivo de texto existente.
+        private void btnCargarArchivo_Click(object sender, EventArgs e)
+        {
+            ofdCargaArchivo.Filter = "Text Files | *.txt";
+            ofdCargaArchivo.Multiselect = false;
+            ofdCargaArchivo.Title = "Cargar Archivo de Texto";
+            if (ofdCargaArchivo.ShowDialog() == DialogResult.OK)
+            {
+
+                string path = ofdCargaArchivo.FileName;
+                if (File.Exists(path))
+                {
+                    try
+                    {
+                        CargarArchivo(path);
+                        IsEdition = true;
+                        _tituloCapitulo = path;
+                        txtDirectorio.Text = Path.GetDirectoryName(path);
+                        lblArchivoEditando.Text = "Archivo editando: " + Path.GetFileName(path);
+                        lblArchivoEditando.Visible = true;
+                        cmbProyecto.Enabled = false;
+                        txtCapitulo.Enabled = false;
+                        btnDirectorio.Enabled = false;
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show("El texto del archivo no contiene un formato adecuado.");
+                    }
+                }
+                else
+                {
+                    MessageBox.Show("El archivo seleccionado no existe.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        //Evento para el botón que permite agregar texto al archivo.
         private void btnAddTexto_Click(object sender, EventArgs e)
         {
             AgregarLinea();
         }
 
-        private void AgregarLinea()
-        {
-            if (!ValidarTituloDirectorio() || rtxtTextoCopiado.Text == string.Empty) return;
-
-            _tituloCapitulo = cmbProyecto.Text + " Capítulo " + txtCapitulo.Text.Trim() + ".txt";
-
-            txtCapitulo.Enabled = false;
-            string textoTranscripcion = rtxtTextoCopiado.Text.Trim().Replace("\r\n", string.Empty).Replace("\n", string.Empty);
-            using (StreamWriter writer = new StreamWriter(txtDirectorio.Text + "\\" + _tituloCapitulo, true))
-            {
-                switch (cmbTipoGlobo.Text)
-                {
-                    case "Dialogo":
-                        writer.WriteLine($"-{textoTranscripcion}");
-                        break;
-                    case "Gritos":
-                        writer.WriteLine($">{textoTranscripcion}");
-                        break;
-                    case "Pensamiento":
-                        writer.WriteLine($"_{textoTranscripcion}");
-                        break;
-                    case "Narración/Rectángulo":
-                        writer.WriteLine($"[{textoTranscripcion}");
-                        break;
-                    case "Fuera de globo":
-                        writer.WriteLine($"]{textoTranscripcion}");
-                        break;
-                    case "Nota de Traductor":
-                        writer.WriteLine($"N/T:{textoTranscripcion}");
-                        break;
-                    default:
-                        break;
-                }
-            }
-            rtxtTextoCopiado.Clear();
-            cmbProyecto.Enabled = false;
-        }
-
+        //Evento para el botón que permite guardar el capítulo activo e iniciar otro.
         private void btnSave_Click(object sender, EventArgs e)
         {
-            var respuesta = MessageBox.Show("¿Deseas realizar otro capítulo del mismo proyecto?", "Finalizar Capítulo", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            var respuesta = DialogResult.No;
+            if (!IsEdition)
+            {
+                respuesta = MessageBox.Show("¿Deseas realizar otro capítulo del mismo proyecto?", "Finalizar Capítulo", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            }
+
 
             if (respuesta == DialogResult.No)
             {
@@ -117,14 +199,21 @@ namespace TranscriptionAssistent
             }
 
             txtCapitulo.Enabled = true;
-            MessageBox.Show("Capítulo guardado correctamente en " + txtDirectorio.Text + "\\" + _tituloCapitulo, "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            string directorio = !IsEdition ? txtDirectorio.Text + "\\" + _tituloCapitulo : _tituloCapitulo;
+            GuardarDataGrid();
+            MessageBox.Show("Capítulo guardado correctamente en " + directorio, "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            IsEdition = false;
+            _tituloCapitulo = string.Empty;
+            btnDirectorio.Enabled = true;
+            dgvPreview.Rows.Clear();
         }
 
+        //Eventos para los atajos de la caja de texto editable.
         private void rtxtTextoCopiado_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.Control && e.KeyCode == Keys.Enter)
             {
-                e.SuppressKeyPress = true; // Evita el pitido del sistema
+                e.SuppressKeyPress = true;
                 AgregarLinea();
             }
             else
@@ -153,6 +242,7 @@ namespace TranscriptionAssistent
             }
         }
 
+        //Evento para validar que el texto del capítulo sea un número entero o decimal.
         private void txtCapitulo_KeyPress(object sender, KeyPressEventArgs e)
         {
 
@@ -169,11 +259,72 @@ namespace TranscriptionAssistent
 
         }
 
+        //Evento para validar que el texto pegado o escrito evite los saltos de linea.
         private void rtxtTextoCopiado_TextChanged(object sender, EventArgs e)
         {
-            rtxtTextoCopiado.Text = rtxtTextoCopiado.Text.Trim().Replace("\r\n", string.Empty).Replace("\n", string.Empty);
+            rtxtTextoCopiado.Text = rtxtTextoCopiado.Text.Replace("\r\n", string.Empty).Replace("\n", string.Empty);
             rtxtTextoCopiado.SelectionStart = rtxtTextoCopiado.Text.Length;
             rtxtTextoCopiado.SelectionLength = 0;
+        }
+
+        //Evento para guardar el contenido del DataGridView cuando se edita una celda.
+        private void dgvPreview_CellLeave(object sender, DataGridViewCellEventArgs e)
+        {
+            GuardarDataGrid();
+        }
+
+        #endregion
+
+        private void dgvPreview_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        {
+            // Verifica que se hizo clic en el botón correcto
+            if (dgvPreview.Columns[e.ColumnIndex].Name == "cdgvEliminar" && e.RowIndex >= 0)
+            {
+                var respuesta = MessageBox.Show("¿Estás seguro de eliminar esta fila?", "Eliminación de fila", MessageBoxButtons.YesNo);
+                if (respuesta == DialogResult.Yes)
+                {
+                    dgvPreview.Rows.RemoveAt(e.RowIndex);
+                    GuardarDataGrid();
+                }
+            }
+        }
+
+        private void dgvPreview_CellMouseEnter(object sender, DataGridViewCellEventArgs e)
+        {
+            try
+            {
+
+                if (dgvPreview.Columns[e.ColumnIndex].Name == "cdgvEliminar" && e.RowIndex >= 0)
+                {
+                    cdgvEliminar.Image = Properties.Resources.icons8_eliminar_color_310_hover;
+                }
+
+            }
+            catch (Exception ex)
+            {
+                //
+            }
+        }
+
+        private void dgvPreview_CellMouseLeave(object sender, DataGridViewCellEventArgs e)
+        {
+            try
+            {
+                if (dgvPreview.Columns[e.ColumnIndex].Name == "cdgvEliminar" && e.RowIndex >= 0)
+                {
+                    cdgvEliminar.Image = Properties.Resources.icons8_eliminar_color_310;
+                }
+            }
+            catch
+            {
+                //
+            }
+        }
+
+        private void btnDirectorio_MouseHover(object sender, EventArgs e)
+        {
+            if(IsEdition)
+                tipBtnDirectorio.SetToolTip(btnDirectorio, "Para poder seleccionar un directorio primero termina el capítulo.");
         }
     }
 }
