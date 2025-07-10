@@ -66,9 +66,9 @@ namespace TranscriptionAssistent
 
 
             string textoTranscripcion = rtxtTextoCopiado.Text.Trim().Replace("\r\n", string.Empty).Replace("\n", string.Empty);
+            GuardarDataGrid(directorioGuardado);
             using (StreamWriter writer = new StreamWriter(directorioGuardado, true))
             {
-                GuardarDataGrid();
                 string vineta = cmbTipoGlobo.Text.IndexOf("Nota de Traductor") > -1 ? "N/T: " : cmbTipoGlobo.Text.Substring(0, 1);
                 writer.WriteLine($"{vineta}{textoTranscripcion}");
                 writer.Close();
@@ -99,11 +99,11 @@ namespace TranscriptionAssistent
         }
 
         //Función para sobreescribir o guardar el contenido del DataGridView en un archivo de texto.
-        private void GuardarDataGrid()
+        private void GuardarDataGrid(string directorio = "")
         {
             try
             {
-                using (StreamWriter writer = new StreamWriter(_tituloCapitulo))
+                using (StreamWriter writer = new StreamWriter(directorio))
                 {
                     foreach (DataGridViewRow row in dgvPreview.Rows)
                     {
@@ -219,6 +219,7 @@ namespace TranscriptionAssistent
             IsEdition = false;
             _tituloCapitulo = string.Empty;
             btnDirectorio.Enabled = true;
+            lblArchivoEditando.Visible = false;
             dgvPreview.Rows.Clear();
         }
 
@@ -343,6 +344,7 @@ namespace TranscriptionAssistent
 
         private void frmTranslator_FormClosing(object sender, FormClosingEventArgs e)
         {
+            string directorioApp = AppDomain.CurrentDomain.BaseDirectory;
             GuardarDataGrid();
         }
 
