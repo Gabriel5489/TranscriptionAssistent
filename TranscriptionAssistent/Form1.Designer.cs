@@ -79,7 +79,7 @@
             // 
             cmbTipoGlobo.DropDownStyle = ComboBoxStyle.DropDownList;
             cmbTipoGlobo.FormattingEnabled = true;
-            cmbTipoGlobo.Items.AddRange(new object[] { "- Dialogo", "> Gritos", "_ Pensamiento", "[ Narración/Rectángulo", "] Fuera de globo", "N/T: Nota de Traductor" });
+            cmbTipoGlobo.Items.AddRange(new object[] { "- Dialogo", "> Gritos", "_ Pensamiento", "[ Narración/Rectángulo", "] Fuera de globo", "N/T: Nota de Traductor", "* Título" });
             cmbTipoGlobo.Location = new Point(29, 225);
             cmbTipoGlobo.Name = "cmbTipoGlobo";
             cmbTipoGlobo.Size = new Size(231, 23);
@@ -149,7 +149,7 @@
             // 
             cmbProyecto.DropDownStyle = ComboBoxStyle.DropDownList;
             cmbProyecto.FormattingEnabled = true;
-            cmbProyecto.Items.AddRange(new object[] { "The All-Devouring Whale", "Zombie World", "List of the Villains", "Thange Ga", "The Barrens", "Babel" });
+            cmbProyecto.Items.AddRange(new object[] { "The All-Devouring Whale", "Zombie World", "List of the Villains", "Thange Ga", "The Barrens", "Babel", "Periodo Cretaceo" });
             cmbProyecto.Location = new Point(29, 97);
             cmbProyecto.Name = "cmbProyecto";
             cmbProyecto.Size = new Size(171, 23);
@@ -277,15 +277,17 @@
             // dgvPreview
             // 
             dgvPreview.AllowUserToAddRows = false;
+            dgvPreview.AllowUserToDeleteRows = false;
+            dgvPreview.BackgroundColor = SystemColors.ControlLight;
             dgvPreview.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             dgvPreview.Columns.AddRange(new DataGridViewColumn[] { cdgvVineta, cdgvTexto, cdgvEliminar });
-            dgvPreview.Location = new Point(29, 446);
+            dgvPreview.Location = new Point(29, 488);
             dgvPreview.MultiSelect = false;
             dgvPreview.Name = "dgvPreview";
-            dgvPreview.Size = new Size(348, 185);
+            dgvPreview.Size = new Size(552, 264);
             dgvPreview.TabIndex = 24;
             dgvPreview.CellContentClick += dgvPreview_CellContentClick;
-            dgvPreview.CellLeave += dgvPreview_CellLeave;
+            dgvPreview.CellEndEdit += dgvPreview_CellEndEdit;
             dgvPreview.CellMouseEnter += dgvPreview_CellMouseEnter;
             dgvPreview.CellMouseLeave += dgvPreview_CellMouseLeave;
             // 
@@ -295,11 +297,14 @@
             cdgvVineta.DefaultCellStyle = dataGridViewCellStyle1;
             cdgvVineta.HeaderText = "Viñeta";
             cdgvVineta.Name = "cdgvVineta";
+            cdgvVineta.Width = 50;
             // 
             // cdgvTexto
             // 
+            cdgvTexto.AutoSizeMode = DataGridViewAutoSizeColumnMode.DisplayedCells;
             cdgvTexto.HeaderText = "Texto";
             cdgvTexto.Name = "cdgvTexto";
+            cdgvTexto.Width = 60;
             // 
             // cdgvEliminar
             // 
@@ -316,7 +321,7 @@
             // 
             // btnCargarArchivo
             // 
-            btnCargarArchivo.Location = new Point(405, 446);
+            btnCargarArchivo.Location = new Point(405, 419);
             btnCargarArchivo.Name = "btnCargarArchivo";
             btnCargarArchivo.Size = new Size(175, 34);
             btnCargarArchivo.TabIndex = 25;
@@ -328,7 +333,7 @@
             // 
             lblArchivoEditando.AutoSize = true;
             lblArchivoEditando.Font = new Font("Segoe UI", 12F);
-            lblArchivoEditando.Location = new Point(29, 422);
+            lblArchivoEditando.Location = new Point(29, 459);
             lblArchivoEditando.Name = "lblArchivoEditando";
             lblArchivoEditando.Size = new Size(131, 21);
             lblArchivoEditando.TabIndex = 26;
@@ -341,7 +346,7 @@
             AutoScaleMode = AutoScaleMode.Dpi;
             AutoSize = true;
             AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            ClientSize = new Size(661, 643);
+            ClientSize = new Size(661, 764);
             Controls.Add(lblArchivoEditando);
             Controls.Add(btnCargarArchivo);
             Controls.Add(dgvPreview);
@@ -373,6 +378,7 @@
             Name = "frmTranslator";
             StartPosition = FormStartPosition.CenterScreen;
             Text = "Transcription Assistant";
+            FormClosing += frmTranslator_FormClosing;
             ((System.ComponentModel.ISupportInitialize)dgvPreview).EndInit();
             ResumeLayout(false);
             PerformLayout();
@@ -406,9 +412,9 @@
         private OpenFileDialog ofdCargaArchivo;
         private Button btnCargarArchivo;
         private Label lblArchivoEditando;
+        private ToolTip tipBtnDirectorio;
         private DataGridViewTextBoxColumn cdgvVineta;
         private DataGridViewTextBoxColumn cdgvTexto;
         private DataGridViewImageColumn cdgvEliminar;
-        private ToolTip tipBtnDirectorio;
     }
 }

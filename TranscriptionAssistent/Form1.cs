@@ -42,33 +42,37 @@ namespace TranscriptionAssistent
             string textoCopiado = Clipboard.GetText();
             string textoSinSaltos = textoCopiado.Replace("\r\n", string.Empty).Replace("\n", string.Empty);
 
-            if (rtxtTextoCopiado.Text != textoSinSaltos)
-            {
-                rtxtTextoCopiado.Text = textoSinSaltos;
+            rtxtTextoCopiado.Text += textoSinSaltos;
 
-                rtxtTextoCopiado.SelectionStart = rtxtTextoCopiado.Text.Length;
-                rtxtTextoCopiado.SelectionLength = 0;
-            }
+            rtxtTextoCopiado.SelectionStart = rtxtTextoCopiado.Text.Length;
+            rtxtTextoCopiado.SelectionLength = 0;
         }
 
         //Función para agregar una línea al archivo de texto.
         private void AgregarLinea()
         {
+            string directorioGuardado = _tituloCapitulo;
             if (!IsEdition)
             {
                 if (!ValidarTituloDirectorio() || rtxtTextoCopiado.Text == string.Empty) return;
                 _tituloCapitulo = cmbProyecto.Text + " Capítulo " + txtCapitulo.Text.Trim() + ".txt";
+                directorioGuardado = txtDirectorio.Text + "\\" + _tituloCapitulo;
                 txtCapitulo.Enabled = false;
+            }
+            else if(rtxtTextoCopiado.Text == string.Empty)
+            {
+                return;
             }
 
 
             string textoTranscripcion = rtxtTextoCopiado.Text.Trim().Replace("\r\n", string.Empty).Replace("\n", string.Empty);
-            using (StreamWriter writer = new StreamWriter(txtDirectorio.Text + "\\" + _tituloCapitulo, true))
+            using (StreamWriter writer = new StreamWriter(directorioGuardado, true))
             {
                 GuardarDataGrid();
-                writer.WriteLine($"{cmbTipoGlobo.Text.Substring(0, 1)}{textoTranscripcion}");
+                string vineta = cmbTipoGlobo.Text.IndexOf("Nota de Traductor") > -1 ? "N/T: " : cmbTipoGlobo.Text.Substring(0, 1);
+                writer.WriteLine($"{vineta}{textoTranscripcion}");
                 writer.Close();
-                CargarArchivo(txtDirectorio.Text + "\\" + _tituloCapitulo);
+                CargarArchivo(directorioGuardado, vineta);
             }
 
             rtxtTextoCopiado.Clear();
@@ -76,7 +80,7 @@ namespace TranscriptionAssistent
         }
 
         //Función para cargar el archivo de texto en el DataGridView y entrar en el modo edición.
-        private void CargarArchivo(string path)
+        private void CargarArchivo(string path, string vineta = "")
         {
             StreamReader reader = new StreamReader(path);
             List<string> lineasArchivo = reader.ReadToEnd().Replace("\r", "").Split("\n").ToList();
@@ -84,10 +88,13 @@ namespace TranscriptionAssistent
             dgvPreview.Rows.Clear();
             foreach (string linea in lineasArchivo)
             {
+                int indexLinea = linea.IndexOf("N/T: ");
+                if (indexLinea > -1 && indexLinea == 0) vineta = "N/T: ";
                 DataGridViewRow row = dgvPreview.Rows[dgvPreview.Rows.Add()];
-                row.Cells[0].Value = linea.Substring(0, 1).Trim();
-                row.Cells[1].Value = linea.Substring(1).Trim();
+                row.Cells[0].Value = vineta != "N/T: " ? linea.Substring(0, 1) : vineta;
+                row.Cells[1].Value = vineta == "N/T: " ? linea.Substring(5) : linea.Substring(1);
             }
+            dgvPreview.CurrentCell = dgvPreview.Rows[dgvPreview.Rows.Count - 1].Cells[0];
             reader.Close();
         }
 
@@ -103,6 +110,8 @@ namespace TranscriptionAssistent
                         writer.WriteLine($"{row.Cells[0].Value}{row.Cells[1].Value}");
                     }
                     writer.Close();
+                    dgvPreview.CurrentCell = dgvPreview.Rows[dgvPreview.Rows.Count - 1].Cells[0];
+                    dgvPreview.Rows[dgvPreview.Rows.Count - 1].Selected = true;
                 }
             }
             catch (Exception ex)
@@ -181,7 +190,12 @@ namespace TranscriptionAssistent
         //Evento para el botón que permite guardar el capítulo activo e iniciar otro.
         private void btnSave_Click(object sender, EventArgs e)
         {
-            var respuesta = DialogResult.No;
+            var respuesta = MessageBox.Show("¿Realmente deseas finlaizar el capítulo?", "Finalizar Capítulo", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            if (respuesta == DialogResult.No)
+            {
+                return;
+            }
+            respuesta = DialogResult.No;
             if (!IsEdition)
             {
                 respuesta = MessageBox.Show("¿Deseas realizar otro capítulo del mismo proyecto?", "Finalizar Capítulo", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
@@ -216,6 +230,11 @@ namespace TranscriptionAssistent
                 e.SuppressKeyPress = true;
                 AgregarLinea();
             }
+            else if (e.Control && e.KeyCode == Keys.V)
+            {
+                e.SuppressKeyPress = true;
+                CopiarTextoPortapapeles();
+            }
             else
             {
                 switch (e.KeyCode)
@@ -237,6 +256,9 @@ namespace TranscriptionAssistent
                         break;
                     case Keys.F6:
                         cmbTipoGlobo.SelectedIndex = 5;
+                        break;
+                    case Keys.F7:
+                        cmbTipoGlobo.SelectedIndex = 6;
                         break;
                 }
             }
@@ -262,15 +284,7 @@ namespace TranscriptionAssistent
         //Evento para validar que el texto pegado o escrito evite los saltos de linea.
         private void rtxtTextoCopiado_TextChanged(object sender, EventArgs e)
         {
-            rtxtTextoCopiado.Text = rtxtTextoCopiado.Text.Replace("\r\n", string.Empty).Replace("\n", string.Empty);
-            rtxtTextoCopiado.SelectionStart = rtxtTextoCopiado.Text.Length;
-            rtxtTextoCopiado.SelectionLength = 0;
-        }
 
-        //Evento para guardar el contenido del DataGridView cuando se edita una celda.
-        private void dgvPreview_CellLeave(object sender, DataGridViewCellEventArgs e)
-        {
-            GuardarDataGrid();
         }
 
         #endregion
@@ -323,8 +337,18 @@ namespace TranscriptionAssistent
 
         private void btnDirectorio_MouseHover(object sender, EventArgs e)
         {
-            if(IsEdition)
+            if (IsEdition)
                 tipBtnDirectorio.SetToolTip(btnDirectorio, "Para poder seleccionar un directorio primero termina el capítulo.");
+        }
+
+        private void frmTranslator_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            GuardarDataGrid();
+        }
+
+        private void dgvPreview_CellEndEdit(object sender, DataGridViewCellEventArgs e)
+        {
+            GuardarDataGrid();
         }
     }
 }
